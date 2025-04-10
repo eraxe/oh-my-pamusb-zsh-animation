@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Cyberpunk PAM USB Authentication Animation Installer
-# This script automatically sets up a retro/cyberpunk animation for PAM USB authentication
+# This script automatically sets up a minimal retro/cyberpunk animation for PAM USB authentication
 
 # ANSI color codes
 RED='\033[0;31m'
@@ -100,47 +100,6 @@ create_sudo_wrapper() {
 # Save the original sudo command
 REAL_SUDO="/usr/bin/sudo"
 
-# Cyberpunk animation frames
-declare -a frames=(
-    "▒▒▒▒▒▒▒▓▓▓█ SCANNING █▓▓▓▒▒▒▒▒▒▒"
-    "▒▒▒▒▒▒▓▓▓█ SCANNING █▓▓▓▒▒▒▒▒▒▒▒"
-    "▒▒▒▒▒▓▓▓█ SCANNING █▓▓▓▒▒▒▒▒▒▒▒▒"
-    "▒▒▒▒▓▓▓█ SCANNING █▓▓▓▒▒▒▒▒▒▒▒▒▒"
-    "▒▒▒▓▓▓█ SCANNING █▓▓▓▒▒▒▒▒▒▒▒▒▒▒"
-    "▒▒▓▓▓█ SCANNING █▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒"
-    "▒▓▓▓█ SCANNING █▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒"
-    "▓▓▓█ SCANNING █▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒"
-    "▓▓█ SCANNING █▓▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒"
-    "▓█ SCANNING █▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒"
-    "█ SCANNING █▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒"
-    " SCANNING ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒"
-    "SCANNING ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒"
-    "CANNING ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█"
-    "ANNING ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓"
-    "NNING ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓▓"
-    "NING ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓▓▓"
-    "ING ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓▓▓▒"
-    "NG ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓▓▓▒▒"
-    "G ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓▓▓▒▒▒"
-    " ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓▓▓▒▒▒▒"
-    "▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒█▓▓▓▒▒▒▒▒"
-)
-
-# Verification animation frames
-declare -a verify_frames=(
-    "[ ░░░░░░░░░░ ] 0%"
-    "[ ▓░░░░░░░░░ ] 10%"
-    "[ ▓▓░░░░░░░░ ] 20%"
-    "[ ▓▓▓░░░░░░░ ] 30%"
-    "[ ▓▓▓▓░░░░░░ ] 40%"
-    "[ ▓▓▓▓▓░░░░░ ] 50%"
-    "[ ▓▓▓▓▓▓░░░░ ] 60%"
-    "[ ▓▓▓▓▓▓▓░░░ ] 70%"
-    "[ ▓▓▓▓▓▓▓▓░░ ] 80%"
-    "[ ▓▓▓▓▓▓▓▓▓░ ] 90%"
-    "[ ▓▓▓▓▓▓▓▓▓▓ ] 100%"
-)
-
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -156,140 +115,163 @@ BRIGHT_MAGENTA='\033[1;35m'
 BRIGHT_CYAN='\033[1;36m'
 NC='\033[0m' # No Color
 
-# Function to show cyberpunk authenticating animation
+# Position and clear the line - now just returns empty since we don't center anymore
+goto_center() {
+    # No longer centering, just return
+    return
+}
+
+# Function to show minimal loading animation
 show_animation() {
     echo -ne "\033[?25l" # Hide cursor
     
-    # Header and initial message
-    printf "\n${BRIGHT_CYAN}╔══════════════════════════════════════════════╗${NC}\n"
-    printf "${BRIGHT_CYAN}║${BRIGHT_MAGENTA}    SECURE AUTHENTICATION SEQUENCE    ${BRIGHT_CYAN}║${NC}\n"
-    printf "${BRIGHT_CYAN}╚══════════════════════════════════════════════╝${NC}\n\n"
+    # Simple loading bar frames
+    local load_chars=("█" "█" "█" "█" "█" "█" "█" "█" "█" "█" "█" "█" "█" "█" "█")
+    local empty_chars=("▒" "▒" "▒" "▒" "▒" "▒" "▒" "▒" "▒" "▒" "▒" "▒" "▒" "▒" "▒")
+    local count=0
+    local max_count=${#load_chars[@]}
     
-    # USB detection animation
-    printf "${BRIGHT_BLUE}[*]${NC} ${CYAN}Detecting USB security device...${NC}"
-    for i in {1..15}; do
-        printf "${BRIGHT_CYAN}.${NC}"
+    # Loop until canceled
+    while true; do
+        # Calculate percentage (not shown anymore)
+        local percentage=$((count * 100 / max_count))
+        
+        # Print the loading bar (no borders)
+        printf "\r["
+        
+        # First part of the bar (filled)
+        for ((i=0; i<count; i++)); do
+            if [ $i -eq $((count/2)) ]; then
+                printf "${BRIGHT_CYAN}AUTHENTICATING${NC}"
+            else
+                printf "${BRIGHT_RED}${load_chars[$i]}${NC}"
+            fi
+        done
+        
+        # Second part of the bar (empty)
+        for ((i=count; i<max_count; i++)); do
+            printf "${BRIGHT_CYAN}${empty_chars[$i]}${NC}"
+        done
+        
+        printf "]"
+        
+        # Increment
+        ((count++))
+        if ((count > max_count)); then
+            count=0
+        fi
+        
+        # Sleep for a short time
         sleep 0.05
     done
-    printf " ${BRIGHT_GREEN}FOUND${NC}\n"
-    sleep 0.2
-    
-    # Main scanning animation
-    printf "${BRIGHT_BLUE}[*]${NC} ${CYAN}Authenticating with secure token...${NC}\n\n"
-    
-    for i in {1..3}; do
-        for frame in "${frames[@]}"; do
-            printf "\r${BRIGHT_MAGENTA}     %s${NC}" "$frame"
-            sleep 0.04
-        done
-    done
-    printf "\n\n"
-    
-    # Verification animation
-    printf "${BRIGHT_BLUE}[*]${NC} ${CYAN}Verifying one-time pad...${NC}\n"
-    for frame in "${verify_frames[@]}"; do
-        printf "\r${BRIGHT_YELLOW}     %s${NC}" "$frame"
-        sleep 0.08
-    done
-    printf "\n\n"
-    
-    # Success message
-    printf "${BRIGHT_GREEN}[+]${NC} ${GREEN}AUTHENTICATION SUCCESSFUL!${NC}\n"
-    printf "${BRIGHT_GREEN}[+]${NC} ${GREEN}ACCESS GRANTED TO SECURE SYSTEM${NC}\n\n"
-    
-    echo -ne "\033[?25h" # Show cursor
 }
 
-# Function to show error animation
-show_error_animation() {
-    echo -ne "\033[?25l" # Hide cursor
-    
-    # Header and initial message
-    printf "\n${BRIGHT_CYAN}╔══════════════════════════════════════════════╗${NC}\n"
-    printf "${BRIGHT_CYAN}║${BRIGHT_MAGENTA}    SECURE AUTHENTICATION SEQUENCE    ${BRIGHT_CYAN}║${NC}\n"
-    printf "${BRIGHT_CYAN}╚══════════════════════════════════════════════╝${NC}\n\n"
-    
-    # USB detection animation
-    printf "${BRIGHT_BLUE}[*]${NC} ${CYAN}Detecting USB security device...${NC}"
-    for i in {1..15}; do
-        printf "${BRIGHT_CYAN}.${NC}"
-        sleep 0.05
-    done
-    
-    if [ "$1" == "no_device" ]; then
-        printf " ${BRIGHT_RED}NOT FOUND${NC}\n\n"
-        printf "${BRIGHT_RED}[!]${NC} ${RED}ERROR: USB SECURITY DEVICE NOT DETECTED${NC}\n"
-        printf "${BRIGHT_RED}[!]${NC} ${RED}INSERT YOUR SECURITY TOKEN AND TRY AGAIN${NC}\n\n"
-        echo -ne "\033[?25h" # Show cursor
-        return
-    else
-        printf " ${BRIGHT_GREEN}FOUND${NC}\n"
-    fi
-    
-    # Main scanning animation
-    printf "${BRIGHT_BLUE}[*]${NC} ${CYAN}Authenticating with secure token...${NC}\n\n"
-    
-    for i in {1..2}; do
-        for frame in "${frames[@]}"; do
-            printf "\r${BRIGHT_MAGENTA}     %s${NC}" "$frame"
-            sleep 0.04
-        done
-    done
-    printf "\n\n"
-    
-    # Verification animation
-    printf "${BRIGHT_BLUE}[*]${NC} ${CYAN}Verifying one-time pad...${NC}\n"
-    for i in {0..5}; do
-        printf "\r${BRIGHT_YELLOW}     %s${NC}" "${verify_frames[$i]}"
-        sleep 0.08
-    done
-    
-    printf "\r${BRIGHT_RED}     [ ▓▓▓▓▓░░░░░ ] ERROR!${NC}\n\n"
-    
-    # Error message
-    printf "${BRIGHT_RED}[!]${NC} ${RED}AUTHENTICATION FAILED: PAD VERIFICATION ERROR${NC}\n"
-    printf "${BRIGHT_RED}[!]${NC} ${RED}ACCESS DENIED TO SECURE SYSTEM${NC}\n\n"
-    
-    echo -ne "\033[?25h" # Show cursor
-}
-
-# Check if output is a terminal and we should show animations
+# Check if output is a terminal
 is_terminal() {
     [ -t 1 ]
 }
+
+# Check for debug mode
+debug_mode=0
+sudo_args=()
+for arg in "$@"; do
+    if [ "$arg" = "--sudo-debug" ]; then
+        debug_mode=1
+    else
+        sudo_args+=("$arg")
+    fi
+done
 
 # Run sudo with all arguments
 if [[ "$1" == "--original" ]]; then
     shift
     $REAL_SUDO "$@"
 else
-    # Capture sudo output to check for errors
+    # Only run animation if this is a terminal
     if is_terminal; then
-        # Run sudo with output redirected to a temp file
-        temp_file=$(mktemp)
-        $REAL_SUDO "$@" 2>&1 | tee "$temp_file"
-        RESULT=${PIPESTATUS[0]}
-        
-        # Check if the output contains PAM USB messages
-        if grep -q "Authentication device .* is connected" "$temp_file"; then
-            # Device was detected
-            if grep -q "Access denied" "$temp_file"; then
-                # Show authentication failed animation
-                show_error_animation
-            elif grep -q "Access granted" "$temp_file"; then
-                # Show authentication success animation
-                show_animation
+        # Get the command string for display
+        CMD_STR="sudo"
+        for arg in "${sudo_args[@]}"; do
+            if [[ "$arg" == *" "* ]]; then
+                CMD_STR="$CMD_STR \"$arg\""
+            else
+                CMD_STR="$CMD_STR $arg"
             fi
-        elif grep -q "Authentication device .* is not connected" "$temp_file"; then
-            # Show device not found animation
-            show_error_animation "no_device"
-        fi
+        done
         
-        rm -f "$temp_file"
-        exit $RESULT
+        # Save the original prompt without printing it
+        original_prompt="$PS1"
+        
+        # Start animation directly (don't print anything yet)
+        show_animation &
+        ANIM_PID=$!
+        
+        # Trap to make sure we kill the animation if the script exits
+        trap 'kill $ANIM_PID 2>/dev/null' EXIT
+        
+        # Run sudo with debug output if requested
+        if [ $debug_mode -eq 1 ]; then
+            # Kill the animation
+            kill $ANIM_PID 2>/dev/null
+            wait $ANIM_PID 2>/dev/null
+            
+            # Now print the command
+            printf "\r\033[K> $CMD_STR\n"
+            
+            # Run with debug output visible
+            $REAL_SUDO "${sudo_args[@]}"
+            EXIT_CODE=$?
+            
+            exit $EXIT_CODE
+        else
+            # Create temporary files for output
+            output_file=$(mktemp)
+            filtered_file=$(mktemp)
+            
+            # Temporarily redirect all output to prevent PAM from showing
+            exec 3>&1 4>&2
+            exec 1>"$output_file" 2>&1
+            
+            # Run sudo command
+            $REAL_SUDO "${sudo_args[@]}"
+            EXIT_CODE=$?
+            
+            # Restore normal output
+            exec 1>&3 2>&4
+            
+            # Kill the animation
+            kill $ANIM_PID 2>/dev/null
+            wait $ANIM_PID 2>/dev/null
+            
+            # Clear animation line and show status
+            printf "\r\033[K"
+            
+            # Show status without repeating the command
+            if [ $EXIT_CODE -eq 0 ]; then
+                printf "${RED}[${NC} ${CYAN}AUTH ✓${NC} ${RED}]${NC}\n"
+            else
+                printf "${CYAN}[${NC} ${RED}AUTH ✗${NC} ${CYAN}]${NC}\n"
+            fi
+            
+            # Filter out all PAM and authentication messages
+            grep -v "Authentication" "$output_file" |
+            grep -v "hardware database" | 
+            grep -v "device" |
+            grep -v "one time pad" |
+            grep -v "Access granted" |
+            grep -v "Access denied" > "$filtered_file"
+            
+            # Display only the filtered command output
+            cat "$filtered_file"
+            
+            # Clean up temporary files
+            rm -f "$output_file" "$filtered_file"
+            
+            exit $EXIT_CODE
+        fi
     else
         # Not a terminal, just run sudo normally
-        $REAL_SUDO "$@"
+        $REAL_SUDO "${sudo_args[@]}"
     fi
 fi
 EOF
@@ -316,6 +298,7 @@ update_zshrc() {
 # Cyberpunk PAM USB Animation - Added by installer script
 alias sudo='$HOME/.local/bin/sudo-wrapper.sh'
 alias sudo-original='$HOME/.local/bin/sudo-wrapper.sh --original'
+alias sudo-debug='$HOME/.local/bin/sudo-wrapper.sh --sudo-debug'
 # Make sure the directory is in PATH
 export PATH="\$HOME/.local/bin:\$PATH"
 EOF
@@ -364,7 +347,8 @@ main() {
     echo -e "${BRIGHT_YELLOW}Next steps:${NC}"
     echo -e "1. ${CYAN}Restart your terminal or run:${NC} ${BRIGHT_GREEN}source $ZSHRC${NC}"
     echo -e "2. ${CYAN}Test the animation by running:${NC} ${BRIGHT_GREEN}sudo ls${NC}"
-    echo -e "3. ${CYAN}If needed, use the original sudo with:${NC} ${BRIGHT_GREEN}sudo-original${NC}"
+    echo -e "3. ${CYAN}For debugging issues, use:${NC} ${BRIGHT_GREEN}sudo-debug ls${NC}"
+    echo -e "4. ${CYAN}To use original sudo without animation:${NC} ${BRIGHT_GREEN}sudo-original ls${NC}"
     echo ""
     echo -e "${BRIGHT_MAGENTA}Enjoy your cyberpunk PAM USB experience!${NC}"
     echo ""
