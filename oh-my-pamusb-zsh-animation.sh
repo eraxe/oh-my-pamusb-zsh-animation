@@ -29,6 +29,9 @@ goto_center() {
 
 # Function to show minimal loading animation
 show_animation() {
+    # Save terminal settings
+    local saved_tty_settings=$(stty -g 2>/dev/null || echo "")
+
     echo -ne "\033[?25l" # Hide cursor
 
     # Simple loading bar frames
@@ -39,9 +42,6 @@ show_animation() {
 
     # Loop until canceled
     while true; do
-        # Calculate percentage (not shown anymore)
-        local percentage=$((count * 100 / max_count))
-
         # Print the loading bar (no borders)
         printf "\r["
 
@@ -70,11 +70,64 @@ show_animation() {
         # Sleep for a short time
         sleep 0.05
     done
+
+    # Animation is stopped by signal, but save the settings for restoration
+    echo "$saved_tty_settings"
+}
+
+# Function to properly clean up animation and restore terminal
+cleanup_animation() {
+    local anim_pid=$1
+    local saved_settings=$2
+
+    # Kill the animation if it's running
+    if ps -p $anim_pid > /dev/null 2>&1; then
+        kill $anim_pid 2>/dev/null
+        wait $anim_pid 2>/dev/null
+    fi
+
+    # Clear animation line
+    printf "\r\033[K"
+
+    # Show cursor
+    echo -ne "\033[?25h"
+
+    # Restore terminal settings if we have them
+    if [ -n "$saved_settings" ]; then
+        stty "$saved_settings" 2>/dev/null
+    fi
+
+    # Reset terminal completely as a fallback
+    stty sane 2>/dev/null
+    tput sgr0 2>/dev/null
+    echo -ne "\033c" 2>/dev/null # Reset terminal
 }
 
 # Check if output is a terminal
 is_terminal() {
     [ -t 1 ]
+}
+
+# Check if a command is likely to be interactive or uses ncurses
+is_interactive_or_ncurses() {
+    local cmd="$*"
+    # List of known interactive commands or applications using ncurses
+    local interactive_cmds=("rm -i" "rm -r" "rm -rf" "apt" "apt-get" "pacman" "yum" "dnf"
+                           "pip" "npm" "git commit" "nano" "vim" "vi" "less" "more"
+                           "top" "htop" "sysdiag" "ncdu" "mc" "mutt" "ranger" "dialog"
+                           "whiptail" "lynx" "links" "elinks" "cmus" "alsamixer"
+                           "aptitude" "synaptic" "wicd-curses" "iotop" "iostat" "iftop"
+                           "nethogs" "nmon" "bmon" "vnstat" "tcpdump" "netstat"
+                           "fdisk" "gdisk" "parted" "gparted" "visudo" "vigr" "vipw"
+                           "systemctl" "journalctl" "dmesg" "tail -f" "watch")
+
+    for icmd in "${interactive_cmds[@]}"; do
+        if [[ "$cmd" == *"$icmd"* ]]; then
+            return 0 # True, interactive or uses ncurses
+        fi
+    done
+
+    return 1 # False, probably safe to use redirection
 }
 
 # Check for debug mode
@@ -105,75 +158,94 @@ else
             fi
         done
 
-        # Save the original prompt without printing it
-        original_prompt="$PS1"
+        # Check if the command is likely interactive or uses ncurses
+        if is_interactive_or_ncurses "${sudo_args[@]}"; then
+            # For interactive commands, show a short animation and then run normally
+            saved_settings=""
+            show_animation &
+            ANIM_PID=$!
 
-        # Start animation directly (don't print anything yet)
-        show_animation &
-        ANIM_PID=$!
+            # Show animation for just 1 second for interactive commands
+            sleep 1
 
-        # Trap to make sure we kill the animation if the script exits
-        trap 'kill $ANIM_PID 2>/dev/null' EXIT
+            # Properly clean up the animation and restore terminal
+            cleanup_animation $ANIM_PID "$saved_settings"
 
-        # Run sudo with debug output if requested
-        if [ $debug_mode -eq 1 ]; then
-            # Kill the animation
-            kill $ANIM_PID 2>/dev/null
-            wait $ANIM_PID 2>/dev/null
+            # Clear animation line
+            printf "\r\033[K${RED}[${NC} ${CYAN}AUTH MODE: INTERACTIVE${NC} ${RED}]${NC}\n"
 
-            # Now print the command
-            printf "\r\033[K> $CMD_STR\n"
+            # Reset terminal completely before running the command
+            stty sane 2>/dev/null
+            tput reset 2>/dev/null
 
-            # Run with debug output visible
+            # Run the command directly without output redirection
             $REAL_SUDO "${sudo_args[@]}"
             EXIT_CODE=$?
 
             exit $EXIT_CODE
         else
-            # Create temporary files for output
-            output_file=$(mktemp)
-            filtered_file=$(mktemp)
+            # Start animation directly with captured terminal settings
+            saved_settings=$(show_animation &)
+            ANIM_PID=$!
 
-            # Temporarily redirect all output to prevent PAM from showing
-            exec 3>&1 4>&2
-            exec 1>"$output_file" 2>&1
+            # Trap to make sure we kill the animation and restore terminal if the script exits
+            trap 'cleanup_animation $ANIM_PID "$saved_settings"' EXIT INT TERM
 
-            # Run sudo command
-            $REAL_SUDO "${sudo_args[@]}"
-            EXIT_CODE=$?
+            # Run sudo with debug output if requested
+            if [ $debug_mode -eq 1 ]; then
+                # Clean up the animation properly
+                cleanup_animation $ANIM_PID "$saved_settings"
 
-            # Restore normal output
-            exec 1>&3 2>&4
+                # Now print the command
+                printf "> $CMD_STR\n"
 
-            # Kill the animation
-            kill $ANIM_PID 2>/dev/null
-            wait $ANIM_PID 2>/dev/null
+                # Run with debug output visible
+                $REAL_SUDO "${sudo_args[@]}"
+                EXIT_CODE=$?
 
-            # Clear animation line and show status
-            printf "\r\033[K"
-
-            # Show status without repeating the command
-            if [ $EXIT_CODE -eq 0 ]; then
-                printf "${RED}[${NC} ${CYAN}AUTH ✓${NC} ${RED}]${NC}\n"
+                exit $EXIT_CODE
             else
-                printf "${CYAN}[${NC} ${RED}AUTH ✗${NC} ${CYAN}]${NC}\n"
+                # Create temporary files for output
+                output_file=$(mktemp)
+                filtered_file=$(mktemp)
+
+                # Temporarily redirect all output to prevent PAM from showing
+                exec 3>&1 4>&2
+                exec 1>"$output_file" 2>&1
+
+                # Run sudo command
+                $REAL_SUDO "${sudo_args[@]}"
+                EXIT_CODE=$?
+
+                # Restore normal output
+                exec 1>&3 2>&4
+
+                # Clean up the animation properly
+                cleanup_animation $ANIM_PID "$saved_settings"
+
+                # Show status without repeating the command
+                if [ $EXIT_CODE -eq 0 ]; then
+                    printf "${RED}[${NC} ${CYAN}AUTH ✓${NC} ${RED}]${NC}\n"
+                else
+                    printf "${CYAN}[${NC} ${RED}AUTH ✗${NC} ${CYAN}]${NC}\n"
+                fi
+
+                # Filter out all PAM and authentication messages
+                grep -v "Authentication" "$output_file" |
+                grep -v "hardware database" |
+                grep -v "device" |
+                grep -v "one time pad" |
+                grep -v "Access granted" |
+                grep -v "Access denied" > "$filtered_file"
+
+                # Display only the filtered command output
+                cat "$filtered_file"
+
+                # Clean up temporary files
+                rm -f "$output_file" "$filtered_file"
+
+                exit $EXIT_CODE
             fi
-
-            # Filter out all PAM and authentication messages
-            grep -v "Authentication" "$output_file" |
-            grep -v "hardware database" |
-            grep -v "device" |
-            grep -v "one time pad" |
-            grep -v "Access granted" |
-            grep -v "Access denied" > "$filtered_file"
-
-            # Display only the filtered command output
-            cat "$filtered_file"
-
-            # Clean up temporary files
-            rm -f "$output_file" "$filtered_file"
-
-            exit $EXIT_CODE
         fi
     else
         # Not a terminal, just run sudo normally
